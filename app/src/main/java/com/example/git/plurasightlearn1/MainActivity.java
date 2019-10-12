@@ -5,10 +5,9 @@ import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -22,8 +21,9 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.example.git.plurasightlearn1.NoteKeeperDatabaseContract.CourseInfoEntry;
-import com.example.git.plurasightlearn1.NoteKeeperDatabaseContract.NoteInfoEntry;
+
+import com.example.git.plurasightlearn1.NoteKeeperProviderContract.Courses;
+import com.example.git.plurasightlearn1.NoteKeeperProviderContract.Notes;
 
 import java.util.List;
 
@@ -41,12 +41,12 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         mNoteKeeperOpenHelper = new NoteKeeperOpenHelper(this);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -55,13 +55,13 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
         initializeDisplayContent();
 
@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity
 
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
@@ -118,14 +118,9 @@ public class MainActivity extends AppCompatActivity
 
         }
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
-    }
-
-    private void handleSelection(String message) {
-        View view = findViewById((R.id.list_items));
-        Snackbar.make(view, message, Snackbar.LENGTH_LONG).show();
     }
 
     @Override
@@ -140,17 +135,17 @@ public class MainActivity extends AppCompatActivity
         getLoaderManager().restartLoader(LOADER_NOTES, null, this);
 
     }
- 
-    private void loadNotes() {
-        SQLiteDatabase db = mNoteKeeperOpenHelper.getReadableDatabase();
-        final String[] noteColumns = {
-                NoteInfoEntry.COLUMN_COURSE_ID,
-                NoteInfoEntry.COLUMN_NOTE_TITLE,
-                NoteInfoEntry._ID};
-        String noteOrderBy = NoteInfoEntry.COLUMN_COURSE_ID + "," + NoteInfoEntry.COLUMN_NOTE_TITLE;
-        final Cursor noteCursor = db.query(NoteInfoEntry.TABLE_NAME, noteColumns, null, null, null, null, noteOrderBy);
-        mNoteRecyclerAdapter.changeCursor(noteCursor);
-    }
+
+//    private void loadNotes() {
+//        SQLiteDatabase db = mNoteKeeperOpenHelper.getReadableDatabase();
+//        final String[] noteColumns = {
+//                NoteInfoEntry.COLUMN_COURSE_ID,
+//                NoteInfoEntry.COLUMN_NOTE_TITLE,
+//                NoteInfoEntry._ID};
+//        String noteOrderBy = NoteInfoEntry.COLUMN_COURSE_ID + "," + NoteInfoEntry.COLUMN_NOTE_TITLE;
+//        final Cursor noteCursor = db.query(NoteInfoEntry.TABLE_NAME, noteColumns, null, null, null, null, noteOrderBy);
+//        mNoteRecyclerAdapter.changeCursor(noteCursor);
+//    }
 
 
     private void initializeDisplayContent() {
@@ -193,25 +188,13 @@ public class MainActivity extends AppCompatActivity
     public Loader<Cursor> onCreateLoader(int id, Bundle bundle) {
         CursorLoader loader = null;
         if (id == LOADER_NOTES) {
-            loader = new CursorLoader(this) {
-                @Override
-                public Cursor loadInBackground() {
-                    SQLiteDatabase db = mNoteKeeperOpenHelper.getReadableDatabase();
-                    final String[] noteColumns = {
-                            NoteInfoEntry.getQName(NoteInfoEntry._ID),
-                            NoteInfoEntry.COLUMN_NOTE_TITLE,
-                            CourseInfoEntry.COLUMN_COURSE_TITLE
-                    };
-
-                    final String noteOrderBy = CourseInfoEntry.COLUMN_COURSE_TITLE + "," + NoteInfoEntry.COLUMN_NOTE_TITLE;
-                    final String tablesWithJoin = NoteInfoEntry.TABLE_NAME + " JOIN " +
-                            CourseInfoEntry.TABLE_NAME + " ON " +
-                            NoteInfoEntry.getQName(NoteInfoEntry.COLUMN_COURSE_ID) + " = " +
-                            CourseInfoEntry.getQName(CourseInfoEntry.COLUMN_COURSE_ID);
-                    return db.query(tablesWithJoin, noteColumns, null, null, null, null, noteOrderBy);
-
-                }
+            final String[] noteColumns = {
+                    Notes._ID,
+                    Notes.COLUMN_NOTE_TITLE,
+                    Courses.COLUMN_COURSE_TITLE
             };
+            final String noteOrderBy = Courses.COLUMN_COURSE_TITLE + "," + Notes.COLUMN_NOTE_TITLE;
+            loader = new CursorLoader(this, Notes.CONTENT_EXPANDED_URI, noteColumns, null, null, noteOrderBy);
         }
         return loader;
     }
